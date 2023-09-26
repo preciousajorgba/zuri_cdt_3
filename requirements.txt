@@ -3,3 +3,4 @@ uvicorn
 sqlalchemy
 PyJWT
 passlib
+python-jose[cryptography]
