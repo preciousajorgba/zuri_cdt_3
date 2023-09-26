@@ -145,3 +145,8 @@ def login(request: schemas.requestdetails, db: Session = Depends(get_session)):
 def getusers( dependencies=Depends(JWTBearer()),session: Session = Depends(get_session)):
     user = session.query(models.User).all()
     return user
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
