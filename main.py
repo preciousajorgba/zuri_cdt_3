@@ -12,7 +12,7 @@ from jwt import PyJWTError
 app = FastAPI()
 
 # Replace with your actual secret key
-SECRET_KEY = "narscbjim@$@&^@&%^&RFghgjvbdsha"
+SECRET_KEY = "ppeauli@j38kl78wj83uirnG0deuisG00d"
 ALGORITHM = "HS256"
 
 DATABASE_URL = "sqlite:///./task_3.db"  # SQLite database file
@@ -42,6 +42,7 @@ class UserCreate(BaseModel):
 class UserInDB(BaseModel):
     id: int
     username: str
+    
 
 class Token(BaseModel):
     access_token: str
@@ -82,13 +83,12 @@ async def get_user(id: int, token: str, db: Session = Depends(get_db)):
         decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-    
+
     if decoded_token.get("sub") != id:
         raise HTTPException(status_code=403, detail="Token does not match the provided user ID")
-    
+
     user_obj = db.query(User).filter(User.id == id).first()
     if user_obj is None:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    return UserInDB(id=user_obj.id, username=user_obj.username, status_code=200)  # Include the status code in the response
 
+    return UserInDB(id=user_obj.id, username=user_obj.username, status_code=200)
