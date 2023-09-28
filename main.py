@@ -75,7 +75,7 @@ async def signup(user: UserCreate, db: Session = Depends(get_db)):
 
     access_token = create_access_token({"sub": user_obj.id})
     # Include the status code in the response
-    return {"access_token": access_token, "token_type": "bearer", "username": user_obj.username, "id": user_obj.id, "status_code": 201}
+    return {"access_token": access_token, "token_type": "bearer", "id": user_obj.id, "status_code": 201}
 
 @app.get("/user", response_model=User_db, status_code=200)
 async def get_user(id: int, token: str, db: Session = Depends(get_db)):
