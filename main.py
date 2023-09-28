@@ -39,7 +39,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
 
-class UserInDB(BaseModel):
+class User_db(BaseModel):
     id: int
     username: str
     
@@ -77,7 +77,7 @@ async def signup(user: UserCreate, db: Session = Depends(get_db)):
     # Include the status code in the response
     return {"access_token": access_token, "token_type": "bearer", "username": user_obj.username, "id": user_obj.id, "status_code": 201}
 
-@app.get("/user", response_model=UserInDB, status_code=200)
+@app.get("/user", response_model=User_db, status_code=200)
 async def get_user(id: int, token: str, db: Session = Depends(get_db)):
     try:
         decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -91,4 +91,4 @@ async def get_user(id: int, token: str, db: Session = Depends(get_db)):
     if user_obj is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return UserInDB(id=user_obj.id, username=user_obj.username, status_code=200)
+    return User_db(id=user_obj.id, username=user_obj.username, status_code=200)
