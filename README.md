@@ -1,145 +1,130 @@
+Certainly, here's a more comprehensive documentation for the FastAPI app:
 
+# FastAPI User Signup and Information API
 
-# FastAPI User Authentication API
+The **FastAPI User Signup and Information API** is a simple web service built using the FastAPI framework that allows users to sign up, obtain authentication tokens, and retrieve user information. This documentation provides detailed information on how to interact with the API, including endpoints, data models, and example requests.
 
-A FastAPI-based user authentication API with registration, login, and user listing features.
+**Live API URL:** [https://task3-j2mm.onrender.com]
 
-## Features
+## Overview
 
-- User registration: Register a new user with a username, email, and password.
-- User login: Authenticate and obtain an access token for accessing protected routes.
-- Get users: Retrieve a list of all registered users (protected route).
-- JWT Tokens: Secure authentication using JSON Web Tokens (JWT).
+The FastAPI User Signup and Information API serves as a demonstration of how to create a user authentication system with FastAPI and SQLAlchemy. It includes two primary endpoints:
 
-## Requirements
+1. **Signup**: Allows users to create a new account. Upon successful registration, the user receives an authentication token.
 
-- Python 3.7+
-- FastAPI
-- SQLAlchemy
-- JWT (PyJWT)
-- Passlib
-- Uvicorn
+2. **User Information**: Enables users to retrieve their own information using their authentication token.
 
-## Installation
+## Endpoints
 
-1. Clone this repository.
+The API has the following endpoints:
 
-```bash
-git clone https://github.com/your-username/fastapi-user-authentication.git
-```
+- **POST /signup** - User registration endpoint
+- **GET /user** - Retrieve user information
 
-2. Change the working directory to the project folder.
+## Data Models
 
-```bash
-cd fastapi-user-authentication
-```
+### UserCreate
 
-3. Install the required dependencies.
+- **username (str)**: The desired username for registration.
+- **password (str)**: The user's chosen password.
 
-```bash
-pip install -r requirements.txt
-```
+### Token
 
-4. Run the FastAPI application.
+- **access_token (str)**: The authentication token issued upon successful registration.
+- **token_type (str)**: The type of token (usually "bearer").
+- **username (str)**: The username of the user.
+- **id (int)**: The user's ID.
+- **status_code (int)**: The HTTP status code of the response.
 
-```bash
-uvicorn main:app --reload
-```
+### UserInDB
 
-The FastAPI app will run on `http://127.0.0.1:8000`.
+- **id (int)**: The user's unique identifier.
+- **username (str)**: The user's username.
+- **password (str)**: The hashed password (not returned by default).
 
-## Usage
+## Authentication and Security
 
-### Register a New User
+- Authentication tokens are issued using the **HS256** algorithm and a secret key.
+- Passwords are hashed using the **bcrypt** algorithm for security.
+
+## How to Test the API Locally
+
+To test the API locally, follow these steps:
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/yourusername/fastapi-user-signup.git
+   ```
+
+2. Navigate to the project directory:
+
+   ```bash
+   cd fastapi-user-signup
+   ```
+
+3. Install the required dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Start the FastAPI application locally:
+
+   ```bash
+   uvicorn main:app --host 0.0.0.0 --port 8000
+   ```
+
+   The API will be accessible at `http://127.0.0.1:8000`.
+
+## Example API Requests
+
+### Signup
+
+To sign up a new user, make a POST request to the `/signup` endpoint. Replace `"your-username"` and `"your-password"` with your desired username and password:
 
 ```bash
 curl -X 'POST' \
-  'http://127.0.0.1:8000/register' \
+  'http://127.0.0.1:8000/signup' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
-  "username": "string",
-  "email": "string",
-  "password": "string"
-}'
+    "username": "your-username",
+    "password": "your-password"
+  }'
 ```
 
-### Login
+The server will respond with a token if the signup is successful.
 
-```bash
-curl -X 'POST' \
-  'http://127.0.0.1:8000/login' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "email": "string",
-  "password": "string"
-}'
-```
+### Retrieve User Information
 
-### Get Users (Requires Authorization)
+To retrieve user information, make a GET request to the `/user` endpoint. Replace `4` with the user's `id` and `"TOKEN"` with a valid user token:
 
 ```bash
 curl -X 'GET' \
-  'http://127.0.0.1:8000/getusers' \
-  -H 'accept: application/json' \
-  -H 'Authorization: Bearer YOUR_ACCESS_TOKEN'
+  'http://127.0.0.1:8000/user?id=4&token=TOKEN' \
+  -H 'accept: application/json'
 ```
 
-Replace `YOUR_ACCESS_TOKEN` with the actual access token obtained during login.
+The server will respond with the user's information if the token is valid.
 
-## API Endpoints
+## Testing the Live API
 
-### Register a New User
+You can also test the live API using the provided URL:
 
-- **URL:** `/register`
-- **Method:** POST
-- **Request Body:**
+**Live API URL:** [https://task3-j2mm.onrender.com](https://task3-j2mm.onrender.com)
 
-```json
-{
-  "username": "string",
-  "email": "string",
-  "password": "string"
-}
-```
+Follow the same example API requests as outlined above, but replace the base URL with the live URL.
 
-- **Response:** User creation confirmation.
+## Important Notes
 
-### Login
+- This project is intended for learning and testing purposes. It uses SQLite as the database backend and should not be used in production without further security considerations and configuration.
 
-- **URL:** `/login`
-- **Method:** POST
-- **Request Body:**
+- Detailed documentation for the endpoints, request/response data, and database structure can be found within the respective files in this repository.
 
-```json
-{
-  "email": "string",
-  "password": "string"
-}
-```
+For more details about FastAPI and SQLAlchemy, refer to the official documentation:
 
-- **Response:** Access and refresh tokens.
+- [FastAPI Official Documentation](https://fastapi.tiangolo.com/)
+- [SQLAlchemy Documentation](https://docs.sqlalchemy.org/en/20/)
 
-### Get Users
 
-- **URL:** `/getusers`
-- **Method:** GET
-- **Authorization:** Bearer token
-- **Response:** List of registered users.
-
-## JWT Tokens
-
-- Access Token: Used for accessing protected routes.
-- Refresh Token: Used to obtain a new access token.
-
-## Author
-
-PEAULI
-
-## License
-
-This project is open-source and available under the [MIT License](LICENSE).
-```
-
-Please replace `"string"`, `"YOUR_ACCESS_TOKEN"`, and other placeholders with actual values. Also, update the "Author" and "License" sections as needed.
