@@ -22,8 +22,8 @@ def get_user_info(user_id, access_token):
 # Main function to sign up and retrieve user information
 def main():
     # Replace with your desired username and password
-    username = "yeu6au9piu9me"
-    password = "tr687r7ord"
+    username = "chinedu"
+    password = "53729gh7"
 
     # Sign up a new user
     signup_response = user_signup(username, password)
