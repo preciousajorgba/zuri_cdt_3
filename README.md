@@ -102,7 +102,7 @@ To retrieve user information, make a GET request to the `/user` endpoint. Replac
 
 ```bash
 curl -X 'GET' \
-  'http://127.0.0.1:8000/user?id=4&token=TOKEN' \
+  'http://127.0.0.1:8000/user?id=4&token={TOKEN}' \
   -H 'accept: application/json'
 ```
 
