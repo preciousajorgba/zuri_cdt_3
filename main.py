@@ -1,152 +1,94 @@
-import schemas
-import models
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel
 import jwt
-from datetime import datetime 
-from models import User,TokenTable
-from database import Base, engine, SessionLocal
-from sqlalchemy.orm import Session
-from fastapi import FastAPI, Depends, HTTPException,status,Request
-from fastapi.security import OAuth2PasswordBearer,HTTPBearer, HTTPAuthorizationCredentials
-from functools import wraps
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
-from typing import Union, Any
-from jose import jwt
-import jwt
-from jwt.exceptions import InvalidTokenError
-from models import TokenTable
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from jwt import PyJWTError
 
+app = FastAPI()
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 30  # 30 minutes
-REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
+# Replace with your actual secret key
+SECRET_KEY = "narscbjim@$@&^@&%^&RFghgjvbdsha"
 ALGORITHM = "HS256"
-JWT_SECRET_KEY = "narscbjim@$@&^@&%^&RFghgjvbdsha"   # should be kept secret
-JWT_REFRESH_SECRET_KEY = "13ugfdfgh@#$%^@&jkl45678902"
 
-password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+DATABASE_URL = "sqlite:///./task_3.db"  # SQLite database file
 
-def decodeJWT(jwtoken: str):
-    try:
-        # Decode and verify the token
-        payload = jwt.decode(jwtoken, JWT_SECRET_KEY, ALGORITHM)
-        return payload
-    except InvalidTokenError:
-        return None
+engine = create_engine(DATABASE_URL)
 
+# Create a standard session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-class JWTBearer(HTTPBearer):
-    def __init__(self, auto_error: bool = True):
-        super(JWTBearer, self).__init__(auto_error=auto_error)
+Base = declarative_base()
 
-    async def __call__(self, request: Request):
-        credentials: HTTPAuthorizationCredentials = await super(JWTBearer, self).__call__(request)
-        if credentials:
-            if not credentials.scheme == "Bearer":
-                raise HTTPException(status_code=403, detail="Invalid authentication scheme.")
-            if not self.verify_jwt(credentials.credentials):
-                raise HTTPException(status_code=403, detail="Invalid token or expired token.")
-            return credentials.credentials
-        else:
-            raise HTTPException(status_code=403, detail="Invalid authorization code.")
+class User(Base):
+    __tablename__ = "users"
 
-    def verify_jwt(self, jwtoken: str) -> bool:
-        isTokenValid: bool = False
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    password = Column(String)
 
-        try:
-            payload = decodeJWT(jwtoken)
-        except:
-            payload = None
-        if payload:
-            isTokenValid = True
-        return isTokenValid
+Base.metadata.create_all(bind=engine)
 
-jwt_bearer = JWTBearer()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def get_hashed_password(password: str) -> str:
-    return password_context.hash(password)
+class UserCreate(BaseModel):
+    username: str
+    password: str
 
+class UserInDB(BaseModel):
+    id: int
+    username: str
 
-def verify_password(password: str, hashed_pass: str) -> bool:
-    return password_context.verify(password, hashed_pass)
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    username: str
+    id: int
+    status_code: int  # Include a field for status code in the response model
 
-def create_access_token(subject: Union[str, Any], expires_delta: int = None) -> str:
-    if expires_delta is not None:
-        expires_delta = datetime.utcnow() + expires_delta
-        
-    else:
-        expires_delta = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-         
-    
-    to_encode = {"exp": expires_delta, "sub": str(subject)}
-    encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, ALGORITHM)
-     
+def create_access_token(data: dict):
+    encoded_jwt = jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def create_refresh_token(subject: Union[str, Any], expires_delta: int = None) -> str:
-    if expires_delta is not None:
-        expires_delta = datetime.utcnow() + expires_delta
-    else:
-        expires_delta = datetime.utcnow() + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode = {"exp": expires_delta, "sub": str(subject)}
-    encoded_jwt = jwt.encode(to_encode, JWT_REFRESH_SECRET_KEY, ALGORITHM)
-    return encoded_jwt
-
-Base.metadata.create_all(engine)
-def get_session():
-    session = SessionLocal()
+# Custom dependency for handling database session
+def get_db():
+    db = SessionLocal()
     try:
-        yield session
+        yield db
     finally:
-        session.close()
-app=FastAPI()
+        db.close()
 
-@app.post("/register")
-def register_user(user: schemas.UserCreate, session: Session = Depends(get_session)):
-    existing_user = session.query(models.User).filter_by(email=user.email).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+@app.post("/signup", response_model=Token, status_code=201)  # Set the status_code for the endpoint
+async def signup(user: UserCreate, db: Session = Depends(get_db)):
+    try:
+        user_obj = User(username=user.username, password=pwd_context.hash(user.password))
+        db.add(user_obj)
+        db.commit()
+        db.refresh(user_obj)
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail="Username already taken")
 
-    encrypted_password =get_hashed_password(user.password)
+    access_token = create_access_token({"sub": user_obj.id})
+    # Include the status code in the response
+    return {"access_token": access_token, "token_type": "bearer", "username": user_obj.username, "id": user_obj.id, "status_code": 201}
 
-    new_user = models.User(username=user.username, email=user.email, password=encrypted_password )
-
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
-
-    return {"message":"user created successfully"}
-
-@app.post('/login' ,response_model=schemas.TokenSchema)
-def login(request: schemas.requestdetails, db: Session = Depends(get_session)):
-    user = db.query(User).filter(User.email == request.email).first()
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect email")
-    hashed_pass = user.password
-    if not verify_password(request.password, hashed_pass):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect password"
-        )
+@app.get("/user", response_model=UserInDB, status_code=200)
+async def get_user(id: int, token: str, db: Session = Depends(get_db)):
+    try:
+        decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
     
-    access=create_access_token(user.id)
-    refresh = create_refresh_token(user.id)
+    if decoded_token.get("sub") != id:
+        raise HTTPException(status_code=403, detail="Token does not match the provided user ID")
+    
+    user_obj = db.query(User).filter(User.id == id).first()
+    if user_obj is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return UserInDB(id=user_obj.id, username=user_obj.username, status_code=200)  # Include the status code in the response
 
-    token_db = models.TokenTable(user_id=user.id,  access_toke=access,  refresh_toke=refresh, status=True)
-    db.add(token_db)
-    db.commit()
-    db.refresh(token_db)
-    return {
-        "access_token": access,
-        "refresh_token": refresh,
-    }
-
-@app.get('/getusers')
-def getusers( dependencies=Depends(JWTBearer()),session: Session = Depends(get_session)):
-    user = session.query(models.User).all()
-    return user
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
