@@ -1,0 +1,55 @@
+import requests
+
+# Define the live API URL
+API_URL = "https://task3-j2mm.onrender.com"
+
+# User Signup
+def user_signup(username, password):
+    signup_url = f"{API_URL}/signup"
+    data = {
+        "username": username,
+        "password": password
+    }
+    response = requests.post(signup_url, json=data)
+    return response
+
+# Get User Information
+def get_user_info(user_id, access_token):
+    user_info_url = f"{API_URL}/user?id={user_id}&token={access_token}"
+    response = requests.get(user_info_url)
+    return response
+
+# Main function to sign up and retrieve user information
+def main():
+    # Replace with your desired username and password
+    username = "yeu6au9piu9me"
+    password = "tr687r7ord"
+
+    # Sign up a new user
+    signup_response = user_signup(username, password)
+
+    print("Signup Response:")
+    print(signup_response.json())
+    print()
+
+    if signup_response.status_code == 201:
+        response_json = signup_response.json()
+        access_token = response_json["access_token"]
+        user_id = response_json["id"]  # Retrieve the user ID from the response
+
+        # Retrieve user information
+        user_info_response = get_user_info(user_id, access_token)
+
+        
+
+        if user_info_response.status_code == 200:
+            user_info = user_info_response.json()
+            print("Get_User Response:")
+            print(user_info)
+        else:
+            print("Failed to retrieve user information.")
+    else:
+        print("Signup failed.")
+
+if __name__ == "__main__":
+    main()
